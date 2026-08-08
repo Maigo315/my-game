@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>魔物娘放置育成 - Prototype v0.2</title>
+<title>魔物娘放置育成 - Prototype v0.3</title>
 <style>
   :root{
     --bg:#11151a; --panel:#1a2129; --panel2:#202a34; --text:#eef6f0; --muted:#9eb0a6;
@@ -44,11 +44,28 @@
   .footer-note{font-size:11px;color:#81948a;text-align:center;padding:4px 12px 12px}
   .text-input{width:100%;background:#0f171c;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px;margin:8px 0 6px;outline:none}.text-input:focus{border-color:var(--accent)}
   .item-actions{display:flex;justify-content:flex-end;margin-top:8px}.btn.small{padding:8px 12px;border-radius:11px;font-size:12px}
+  .battle-sheet{max-height:94vh}
+  .battle-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+  .battle-rank{font-size:12px;color:var(--warn);font-weight:800}
+  .fighter{background:#10171c;border:1px solid var(--line);border-radius:15px;padding:11px;margin-bottom:9px}
+  .fighter.enemy{border-color:#5b3a3a;background:#1d1517}.fighter.player{border-color:#31523a;background:#121c17}
+  .fighter-name{font-weight:900;font-size:17px}.fighter-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .battle-hpbar{height:13px;background:#080d10;border:1px solid #33404a;border-radius:99px;overflow:hidden;margin:7px 0 5px}
+  .battle-hpfill{height:100%;background:linear-gradient(90deg,#75ce82,#c5ee94);transition:width .2s}.enemy .battle-hpfill{background:linear-gradient(90deg,#d47a7a,#e2ba7c)}
+  .battle-statuses{display:flex;gap:5px;flex-wrap:wrap;min-height:22px;margin-top:6px}.status-chip{font-size:10px;padding:3px 6px;border-radius:99px;border:1px solid #485963;background:#172129;color:#d6e2dc}.status-chip.debuff{border-color:#694047;background:#291a1d;color:#ffc0c0}.status-chip.buff{border-color:#3f6348;background:#17291d;color:#c5efca}
+  .res-line{font-size:10px;color:var(--muted);line-height:1.5}
+  .battle-log{height:160px;overflow:auto;background:#0d1317;border:1px solid #2d3942;border-radius:12px;padding:9px;font-size:12px;line-height:1.55;margin:9px 0}.battle-log .turnline{color:var(--warn);font-weight:800;margin-top:5px}.battle-log .playerlog{color:#c8efce}.battle-log .enemylog{color:#f2bcbc}.battle-log .systemlog{color:#aebbb4}
+  .command-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.command-btn{padding:12px 7px}
+  .battle-submenu{margin-top:9px;display:none}.battle-submenu.show{display:block}.battle-option{width:100%;text-align:left;border:1px solid var(--line);border-radius:11px;background:#111920;color:var(--text);padding:9px;margin:5px 0}.battle-option:disabled{opacity:.4}.battle-option b{display:block}.battle-option small{color:var(--muted);line-height:1.4}
+  .battle-result{display:none;margin-top:10px}.battle-result.show{display:block}
+  .enemy-icon{font-size:46px;line-height:1}
+  .preview-enemy{display:flex;gap:12px;align-items:center;padding:11px;background:#171316;border:1px solid #55383c;border-radius:14px;margin:10px 0}
+  .battle-note{font-size:11px;color:var(--muted);line-height:1.5}
 </style>
 </head>
 <body>
 <div class="app">
-  <header><div class="title">魔物娘放置育成 <span class="tag">v0.2</span></div><div class="money" id="goldHeader">0G</div></header>
+  <header><div class="title">魔物娘放置育成 <span class="tag">v0.3</span></div><div class="money" id="goldHeader">0G</div></header>
   <main>
     <section id="home" class="screen active">
       <div class="card hero">
@@ -103,6 +120,7 @@
     <section id="status" class="screen">
       <div class="card"><h2>プロフィール</h2><div class="row space"><div><div class="tiny">名前</div><b id="profileName">スライム娘</b><div class="tiny" id="profileSpecies">種族：スライム娘</div></div><button class="btn secondary small" id="renameFromStatus">名前変更</button></div></div>
       <div class="card"><h2>詳細ステータス</h2><div id="fullStats" class="grid"></div></div>
+      <div class="card"><h3>属性耐性</h3><div id="resistanceStats" class="grid"></div><div class="tiny" id="resistanceNote" style="margin-top:8px"></div></div>
       <div class="card"><h3>育成ステータス</h3><div id="trainingStats" class="grid"></div></div>
       <div class="card"><h3>開発用</h3><button class="btn danger" id="resetSave">セーブデータ初期化</button><div class="tiny" style="margin-top:8px">この端末・ブラウザのlocalStorageのみを初期化します。</div></div>
     </section>
@@ -110,14 +128,45 @@
   <nav>
     <button data-screen="home" class="active">ホーム</button><button data-screen="training">育成</button><button data-screen="skills">スキル</button><button data-screen="items">持ち物</button><button data-screen="status">詳細</button>
   </nav>
-  <div class="footer-note">v0.2｜戦闘・ランク戦・進化は次段階で実装予定</div>
+  <div class="footer-note">v0.3｜Lv5ランク戦を実装。Lv10以降・進化は次段階</div>
 </div>
 
 <div class="modal" id="resultModal"><div class="sheet"><h2>育成結果</h2><div id="resultContent"></div><button class="btn" id="closeResult" style="width:100%;margin-top:12px">ホームへ戻る</button></div></div>
 <div class="modal" id="skillManageModal"><div class="sheet"><h2>スキル整理</h2><div class="notice warn">所持上限は4個です。残すスキルを4個選んでください。</div><div id="skillManageList" class="list"></div><button class="btn" id="confirmSkillManage" style="width:100%;margin-top:12px">この4個を残す</button></div></div>
 <div class="modal" id="trainingItemModal"><div class="sheet"><h2>育成アイテム使用</h2><div id="trainingItemChoices" class="list"></div><button class="btn secondary" id="closeTrainingItem" style="width:100%;margin-top:12px">閉じる</button></div></div>
 <div class="modal" id="nameModal"><div class="sheet"><h2>名前変更</h2><div class="tiny">12文字まで。空欄にすると種族名「スライム娘」に戻ります。</div><input class="text-input" id="nameInput" type="text" maxlength="12" autocomplete="off" placeholder="名前を入力"><div class="row" style="margin-top:10px"><button class="btn" id="saveName" style="flex:1">決定</button><button class="btn secondary" id="closeName" style="flex:1">キャンセル</button></div></div></div>
-<div class="modal" id="battleModal"><div class="sheet"><h2>ランク戦</h2><div id="battleModalText" class="notice"></div><button class="btn secondary" id="closeBattle" style="width:100%">閉じる</button></div></div>
+<div class="modal" id="battleModal"><div class="sheet battle-sheet">
+  <div id="battlePreview">
+    <div class="battle-head"><div><h2 style="margin-bottom:3px">ランク戦</h2><div class="battle-rank" id="battlePreviewRank"></div></div><button class="mini-btn" id="closeBattle">閉じる</button></div>
+    <div id="battleModalText"></div>
+    <div id="battlePreviewEnemy"></div>
+    <div id="battleRetryInfo"></div>
+    <button class="btn warn" id="startBattle" style="width:100%;margin-top:10px">挑戦する</button>
+  </div>
+  <div id="battleView" style="display:none">
+    <div class="battle-head"><div><h2 style="margin-bottom:2px">ランク戦</h2><div class="battle-rank" id="battleTurnText">TURN 1</div></div><div class="pill" id="battleBonusText"></div></div>
+    <div class="fighter enemy">
+      <div class="row space"><div><div class="fighter-name">🐶 犬娘</div><div class="fighter-sub">ランク1 → 2 試験相手</div></div><b id="enemyHpText"></b></div>
+      <div class="battle-hpbar"><div class="battle-hpfill" id="enemyHpFill"></div></div>
+      <div class="res-line" id="enemyResText"></div><div class="battle-statuses" id="enemyStatuses"></div>
+    </div>
+    <div class="fighter player">
+      <div class="row space"><div><div class="fighter-name" id="battlePlayerName">スライム娘</div><div class="fighter-sub" id="battlePlayerSub"></div></div><b id="playerHpText"></b></div>
+      <div class="battle-hpbar"><div class="battle-hpfill" id="playerHpFill"></div></div>
+      <div class="res-line" id="playerResText"></div><div class="battle-statuses" id="playerStatuses"></div>
+    </div>
+    <div class="battle-log" id="battleLog"></div>
+    <div id="battleCommands">
+      <div class="command-grid">
+        <button class="btn command-btn" data-bcmd="attack">攻撃</button><button class="btn secondary command-btn" data-bcmd="defend">防御</button>
+        <button class="btn secondary command-btn" data-bcmd="skill">スキル</button><button class="btn warn command-btn" data-bcmd="item">アイテム</button>
+      </div>
+      <div class="battle-submenu" id="battleSkillMenu"></div><div class="battle-submenu" id="battleItemMenu"></div>
+      <div class="battle-note" style="margin-top:7px">アクティブスキルは1戦闘に1度。アイテム使用も1ターンを消費します。</div>
+    </div>
+    <div class="battle-result" id="battleResult"><div id="battleResultText"></div><button class="btn" id="battleReturnHome" style="width:100%;margin-top:10px">ホームへ戻る</button></div>
+  </div>
+</div></div>
 
 <script>
 (() => {
@@ -195,14 +244,24 @@ const EVENTS=[
  {id:'travelerItem',name:'旅人と仲良くなったことを楽しそうに話している。アイテムも貰ったようだ。',desc:'好色度+3。アイテムを追加で1個入手。'},
  {id:'hardTrain',name:'とにかく頑張って特訓に励んだ！',desc:'今回の獲得経験値+50%。'}
 ];
-function initialState(){return {version:2,monsterName:'',level:1,exp:0,gold:0,rankCap:5,stats:{hp:40,atk:7,mag:7,spd:4,bond:0},trainingStats:{size:3,predation:2,intellect:2,lust:2},skills:['tackle','jiggly','slimeDraw'],skillCap:4,skillFailCount:0,inventory:{},trainingItemReady:true,nextTraining:{expBonus:0},training:null,devMode:true,lastResult:null};}
-let state=load(); let selectedPolicy='relaxed'; let timerHandle=null;
-function load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return initialState();const loaded=Object.assign(initialState(),JSON.parse(raw));loaded.version=2;if(typeof loaded.monsterName!=='string')loaded.monsterName='';return loaded;}catch(e){return initialState()}}
+const DOG_ENEMY={name:'犬娘',maxHp:45,atk:13,mag:5,spd:8,resistances:{physical:0,magic:0,pleasure:-30}};
+function initialState(){return {version:3,monsterName:'',level:1,exp:0,gold:0,rank:1,rankCap:5,rankLosses:0,resistances:{physical:0,magic:0,pleasure:0},stats:{hp:40,atk:7,mag:7,spd:4,bond:0},trainingStats:{size:3,predation:2,intellect:2,lust:2},skills:['tackle','jiggly','slimeDraw'],skillCap:4,skillFailCount:0,inventory:{},trainingItemReady:true,nextTraining:{expBonus:0},training:null,devMode:true,lastResult:null};}
+let state=load(); let selectedPolicy='relaxed'; let timerHandle=null; let battle=null;
+function load(){try{
+  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return initialState();
+  const base=initialState(), old=JSON.parse(raw);
+  const loaded={...base,...old,version:3,stats:{...base.stats,...(old.stats||{})},trainingStats:{...base.trainingStats,...(old.trainingStats||{})},resistances:{...base.resistances,...(old.resistances||{})},inventory:{...(old.inventory||{})},nextTraining:{...base.nextTraining,...(old.nextTraining||{})}};
+  if(typeof loaded.monsterName!=='string')loaded.monsterName='';
+  if(!Number.isFinite(loaded.rank))loaded.rank=loaded.rankCap>5?2:1;
+  if(!Number.isFinite(loaded.rankLosses))loaded.rankLosses=0;
+  return loaded;
+}catch(e){return initialState()}}
 function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state))}
 function expNeed(lv){return 10+lv*2}
 function hasSkill(id){return state.skills.includes(id)}
 function passiveValue(key){let v=0;state.skills.forEach(id=>{const t=SKILLS[id]?.training;if(t&&t[key])v+=t[key]});return v}
 function displayNum(n){return floorDisplay(n).toLocaleString('ja-JP')}
+function formatPct(n){const v=Math.trunc(Number(n)||0);return (v>0?'+':'')+v+'%'}
 function showScreen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.screen===id));render()}
 function render(){
   document.getElementById('goldHeader').textContent=displayNum(state.gold)+'G';
@@ -215,15 +274,24 @@ function render(){
   const cap=state.level>=state.rankCap; const need=expNeed(state.level); const pct=cap?100:Math.min(100,state.exp/need*100);
   document.getElementById('xpFill').style.width=pct+'%';
   document.getElementById('expText').textContent=cap?`上限到達 / 保留EXP ${displayNum(state.exp)}`:`${displayNum(state.exp)} / ${need}`;
-  document.getElementById('rankNotice').innerHTML=cap?'<div class="notice warn">Lv.5到達！ ランク戦が解放されました。現在のプロトタイプでは戦闘は未実装です。</div>':'';
-  document.getElementById('quickStats').innerHTML=statCards([['HP',state.stats.hp],['攻撃力',state.stats.atk],['魔力',state.stats.mag],['素早さ',state.stats.spd],['絆',state.stats.bond],['金貨',state.gold+'G',true]]);
+  let rankHtml='';
+  if(state.rank===1 && state.level>=5)rankHtml='<div class="notice warn">Lv.5到達！ 犬娘とのランク戦に挑戦できます。</div>';
+  else if(state.rank>=2 && state.level>=10)rankHtml='<div class="notice warn">Lv.10到達！ 次のランク戦は次段階で実装予定です。</div>';
+  document.getElementById('rankNotice').innerHTML=rankHtml;
+  document.getElementById('quickStats').innerHTML=statCards([['HP',state.stats.hp],['攻撃力',state.stats.atk],['魔力',state.stats.mag],['素早さ',state.stats.spd],['絆',state.stats.bond],['ランク',state.rank,true]]);
   document.getElementById('fullStats').innerHTML=statCards([['HP',state.stats.hp],['攻撃力',state.stats.atk],['魔力',state.stats.mag],['素早さ',state.stats.spd],['絆値',state.stats.bond]]);
   document.getElementById('trainingStats').innerHTML=statCards([['大きさ',state.trainingStats.size],['捕食性',state.trainingStats.predation],['知性',state.trainingStats.intellect],['好色度',state.trainingStats.lust]]);
+  const passiveMagic=hasSkill('magicWall')?10:0;
+  document.getElementById('resistanceStats').innerHTML=statCards([['物理耐性',formatPct(state.resistances.physical),true],['魔導耐性',formatPct(state.resistances.magic+passiveMagic),true],['快楽耐性',formatPct(state.resistances.pleasure),true]]);
+  document.getElementById('resistanceNote').textContent=passiveMagic?'「魔力障壁」のパッシブ補正 +10% を含む表示です。':'スライム娘の基礎耐性は現在すべて0%です。';
   document.getElementById('skillCapText').textContent=`${state.skills.length} / ${state.skillCap}`;
   document.getElementById('skillList').innerHTML=state.skills.map(id=>skillHtml(id)).join('')||'<div class="card muted">スキルなし</div>';
   renderInventory(); renderShop(); renderPolicies(); renderTrainingState();
   document.getElementById('devMode').checked=!!state.devMode;
-  const battleBtn=document.getElementById('goBattle'); battleBtn.textContent=cap?'ランク戦':'戦闘 🔒'; battleBtn.classList.toggle('warn',cap);
+  const battleBtn=document.getElementById('goBattle');
+  const battleReady=state.rank===1&&state.level>=5;
+  battleBtn.textContent=battleReady?'ランク戦':(state.rank>=2&&state.level>=10?'ランク戦（未実装）':'戦闘 🔒');
+  battleBtn.classList.toggle('warn',battleReady); battleBtn.disabled=!!state.training;
   document.getElementById('trainingStatusHome').innerHTML=state.training?'<div class="notice">現在、草原で放置育成中です。育成画面で残り時間を確認できます。</div>':'';
 }
 function statCards(data){return data.map(([k,v,raw])=>`<div class="stat"><span>${k}</span><b>${raw?v:displayNum(v)}</b></div>`).join('')}
@@ -324,13 +392,144 @@ function completeTraining(){if(!state.training)return;stopTimerLoop();const t=st
   if(success){const learned=learnRandomGrassSkill(guaranteed?'5回目保証':'通常スキル抽選',result);if(learned)state.skillFailCount=0}else{state.skillFailCount=Math.min(4,state.skillFailCount+1);result.push(`スキル抽選：習得なし（保証カウント ${state.skillFailCount}/4）`)}
   // 10) restore training item use right
   state.trainingItemReady=true;
-  if(state.level>=state.rankCap)result.push('<span class="gold">Lv.5上限に到達。ランク戦が解放されました。</span>');
+  if(state.level>=state.rankCap)result.push(`<span class="gold">Lv.${state.rankCap}上限に到達。${state.rank===1?'ランク戦が解放されました。':'次のランク戦は次段階で実装予定です。'}</span>`);
   state.lastResult=result;save();render();showResult(result);
 }
 function showResult(lines){document.getElementById('resultContent').innerHTML=lines.map(x=>`<div class="result-step">${x}</div>`).join('');document.getElementById('resultModal').classList.add('show')}
 function checkSkillOverflow(){if(state.skills.length<=state.skillCap)return false;const box=document.getElementById('skillManageList');box.innerHTML=state.skills.map((id,i)=>`<label class="item" style="display:block"><input type="checkbox" class="keep-skill" value="${id}" ${i<state.skillCap?'checked':''}> <b>${SKILLS[id].name}</b><div class="desc">${SKILLS[id].desc}</div></label>`).join('');document.getElementById('skillManageModal').classList.add('show');return true}
 function confirmSkillManage(){const chosen=[...document.querySelectorAll('.keep-skill:checked')].map(x=>x.value);if(chosen.length!==state.skillCap){alert(`残すスキルを${state.skillCap}個選んでください。`);return}state.skills=chosen;save();document.getElementById('skillManageModal').classList.remove('show');render()}
-function openBattle(){const cap=state.level>=state.rankCap;document.getElementById('battleModalText').innerHTML=cap?'Lv.5ランク戦は解放済みです。<br><b>戦闘システムは次段階で実装します。</b>':'Lv.5に到達するとランク戦が解放されます。';document.getElementById('battleModal').classList.add('show')}
+function retryBonusPct(){return Math.min(25,(state.rankLosses||0)*5)}
+function bondCommandRate(){const b=state.stats.bond;if(b<=20)return 75;if(b<=40)return 80;if(b<=60)return 85;if(b<=80)return 90;return 100}
+function playerDisplayName(){return (state.monsterName||'').trim()||'スライム娘'}
+function openBattle(){
+  if(state.training){alert('放置育成中は戦闘できません。');return}
+  battle=null;
+  const ready=state.rank===1&&state.level>=5;
+  document.getElementById('battlePreview').style.display='block';document.getElementById('battleView').style.display='none';
+  document.getElementById('battlePreviewRank').textContent=state.rank===1?'RANK 1 → 2':'RANK '+state.rank;
+  document.getElementById('startBattle').style.display=ready?'block':'none';
+  if(ready){
+    document.getElementById('battleModalText').innerHTML='<div class="notice warn">Lv.5ランク戦。勝利するとランク2になり、レベル上限がLv.10まで解放されます。</div>';
+    document.getElementById('battlePreviewEnemy').innerHTML=`<div class="preview-enemy"><div class="enemy-icon">🐶</div><div><b style="font-size:18px">犬娘</b><div class="tiny">HP45 / 攻撃13 / 魔力5 / 素早さ8</div><div class="tiny">物理0% / 魔導0% / 快楽-30%</div></div></div>`;
+    const bonus=retryBonusPct();document.getElementById('battleRetryInfo').innerHTML=`<div class="notice ${bonus?'':'warn'}">敗北回数：<b>${state.rankLosses||0}</b><br>再挑戦補正：<b>${bonus?`与ダメ+${bonus}% / 被ダメ-${bonus}%`:'なし'}</b></div>`;
+  }else{
+    const text=state.rank>=2?(state.level>=10?'Lv.10ランク戦の相手データは次段階で実装予定です。':'現在はランク2です。Lv.10で次のランク戦が解放されます。'):'Lv.5に到達すると犬娘とのランク戦が解放されます。';
+    document.getElementById('battleModalText').innerHTML=`<div class="notice">${text}</div>`;document.getElementById('battlePreviewEnemy').innerHTML='';document.getElementById('battleRetryInfo').innerHTML='';
+  }
+  document.getElementById('battleModal').classList.add('show');
+}
+function makeCombatant(kind){
+  if(kind==='player')return {kind:'player',name:playerDisplayName(),maxHp:Math.max(1,Math.floor(state.stats.hp)),hp:Math.max(1,Math.floor(state.stats.hp)),atk:state.stats.atk,mag:state.stats.mag,spd:state.stats.spd,baseRes:{...state.resistances},resMods:{physical:0,magic:0,pleasure:0},resBuffs:{physical:[],magic:[],pleasure:[]},poison:0,nuru:0,exhausted:0,vulnerable:0,barrier:0,aura:0,atkBuffTurns:0,manaBuffTurns:0,spdBonus:0,defending:false};
+  return {kind:'enemy',name:DOG_ENEMY.name,maxHp:DOG_ENEMY.maxHp,hp:DOG_ENEMY.maxHp,atk:DOG_ENEMY.atk,mag:DOG_ENEMY.mag,spd:DOG_ENEMY.spd,baseRes:{...DOG_ENEMY.resistances},resMods:{physical:0,magic:0,pleasure:0},resBuffs:{physical:[],magic:[],pleasure:[]},poison:0,nuru:0,exhausted:0,vulnerable:0,barrier:0,aura:0,atkBuffTurns:0,manaBuffTurns:0,spdBonus:0,defending:false};
+}
+function startRankBattle(){
+  if(!(state.rank===1&&state.level>=5)||state.training)return;
+  battle={turn:1,player:makeCombatant('player'),enemy:makeCombatant('enemy'),usedSkills:new Set(),jigglyUsed:false,deepBreathUsed:false,over:false,logs:[],bonus:retryBonusPct()};
+  document.getElementById('battlePreview').style.display='none';document.getElementById('battleView').style.display='block';document.getElementById('battleCommands').style.display='block';document.getElementById('battleResult').classList.remove('show');
+  battleLog('systemlog',`ランク戦開始！ ${playerDisplayName()} vs 犬娘`);
+  if(hasSkill('eyes')){battle.enemy.exhausted=1;battleLog('playerlog','「つぶらなひとみ」が発動！ 犬娘に【虚脱】を1ターン付与。')}
+  if(hasSkill('magicWall'))battleLog('playerlog','「魔力障壁」により魔導耐性+10%。');
+  renderBattle();
+}
+function effectiveRes(c,type){let v=(c.baseRes[type]||0)+(c.resMods[type]||0);for(const b of c.resBuffs[type]||[])v+=b.amount;if(type==='magic'&&c.kind==='player'&&hasSkill('magicWall'))v+=10;if(type==='pleasure'&&c.nuru>0)v-=30;return clamp(v,-100,90)}
+function effectiveAtk(c){let v=c.atk;if(c.atkBuffTurns>0)v*=1.5;return v}
+function effectiveMag(c){let v=c.mag;if(c.manaBuffTurns>0)v*=1.5;return v}
+function effectiveSpd(c){return c.spd+(c.spdBonus||0)}
+function battleLog(cls,text){if(!battle)return;battle.logs.push({cls,text});if(battle.logs.length>80)battle.logs.shift()}
+function addBarrier(c,amount){const gain=Math.max(0,Math.floor(amount+(c.aura||0)));c.barrier+=gain;return gain}
+function healCombat(c,amount){const n=Math.max(0,Math.floor(amount));const actual=Math.min(n,c.maxHp-c.hp);c.hp+=actual;return actual}
+function damageCombat(source,target,base,type='untyped',opts={}){
+  if(base<=0)return {damage:0,absorbed:0};let d=base;
+  if(type!=='untyped')d*=1-effectiveRes(target,type)/100;
+  if(source&&source!==target&&source.exhausted>0)d*=0.5;
+  if(source&&source!==target&&target.vulnerable>0&&opts.fromAction!==false)d*=1.5;
+  if(source?.kind==='player'&&target.kind==='enemy'&&opts.fromAction!==false)d*=1+battle.bonus/100;
+  if(source?.kind==='enemy'&&target.kind==='player'&&opts.fromAction!==false)d*=1-battle.bonus/100;
+  if(target.defending&&source&&source!==target&&opts.fromAction!==false)d*=0.5;
+  if(target.kind==='player'&&source?.kind==='enemy'&&opts.fromAction!==false&&hasSkill('jiggly')&&!battle.jigglyUsed){d*=0.5;battle.jigglyUsed=true;battleLog('playerlog','「ぷるぷるボディ」が発動！ 最初の被ダメージを半減。')}
+  let dmg=Math.floor(d);if(d>0&&dmg<1)dmg=1;
+  let absorbed=0;if(source&&source!==target&&target.barrier>0){absorbed=Math.min(dmg,target.barrier);target.barrier-=absorbed;dmg-=absorbed}
+  target.hp=Math.max(0,target.hp-dmg);return {damage:dmg,absorbed};
+}
+function pureStatusDamage(target,amount){let dmg=Math.max(0,Math.floor(amount)),absorbed=0;if(target.barrier>0){absorbed=Math.min(dmg,target.barrier);target.barrier-=absorbed;dmg-=absorbed}target.hp=Math.max(0,target.hp-dmg);return {damage:dmg,absorbed}}
+function damageText(r){return `${r.damage}ダメージ${r.absorbed?`（バリアが${r.absorbed}軽減）`:''}`}
+function chooseEnemyAction(){const howl=battle.enemy.atkBuffTurns>0;if(howl)return Math.random()<0.625?'normal':'bite';const r=Math.random()*100;return r<50?'normal':r<80?'bite':'howl'}
+function unusedActiveSkills(){return state.skills.filter(id=>SKILLS[id]?.type==='アクティブ'&&!battle.usedSkills.has(id))}
+function randomDisobedientAction(intended){const pool=[{kind:'attack'},{kind:'defend'},...unusedActiveSkills().map(id=>({kind:'skill',id}))].filter(a=>!(a.kind===intended.kind&&a.id===intended.id));return pool.length?pick(pool):{kind:'attack'}}
+function resolveObedience(intended){const rate=bondCommandRate();if(Math.random()*100<rate)return intended;const actual=randomDisobedientAction(intended);battleLog('systemlog',`${playerDisplayName()}は指示を聞かなかった！（指示成功率 ${rate}%）`);return actual}
+function actionLabel(a){if(a.kind==='attack')return '通常攻撃';if(a.kind==='defend')return '防御';if(a.kind==='skill')return SKILLS[a.id]?.name||'スキル';if(a.kind==='item')return ITEMS[a.id]?.name||'アイテム';return a.kind}
+function submitBattleAction(intended){
+  if(!battle||battle.over)return;
+  if(intended.kind==='skill'&&(battle.usedSkills.has(intended.id)||SKILLS[intended.id]?.type!=='アクティブ'))return;
+  if(intended.kind==='item'&&(!(state.inventory[intended.id]>0)||ITEMS[intended.id]?.kind!=='戦闘'))return;
+  closeBattleSubmenus();battleLog('turnline',`── TURN ${battle.turn} ──`);
+  const playerAction=resolveObedience(intended);const enemyAction={kind:'enemy',id:chooseEnemyAction()};
+  battle.player.defending=playerAction.kind==='defend';
+  const pSpd=effectiveSpd(battle.player),eSpd=effectiveSpd(battle.enemy);const order=pSpd>=eSpd?['player','enemy']:['enemy','player'];
+  for(const who of order){if(battle.over)break;if(who==='player')executePlayerAction(playerAction);else executeEnemyAction(enemyAction.id);checkBattleEnd();}
+  if(!battle.over){processTurnEnd();checkBattleEnd();}
+  if(!battle.over){battle.player.defending=false;battle.enemy.defending=false;battle.turn++;}
+  save();renderBattle();
+}
+function executePlayerAction(a){
+  const p=battle.player,e=battle.enemy;
+  if(a.kind==='attack'){const r=damageCombat(p,e,effectiveAtk(p),'physical');battleLog('playerlog',`${p.name}の攻撃！ 犬娘に${damageText(r)}。`);return}
+  if(a.kind==='defend'){battleLog('playerlog',`${p.name}は身を守っている。このターンの被ダメージ-50%。`);return}
+  if(a.kind==='item'){executeBattleItem(a.id);return}
+  if(a.kind!=='skill')return;const id=a.id,s=SKILLS[id];if(!s||battle.usedSkills.has(id))return;battle.usedSkills.add(id);
+  const power=6+state.level*0.6;
+  if(id==='tackle'){const r=damageCombat(p,e,15,'physical');battleLog('playerlog',`「体当たり」！ 犬娘に${damageText(r)}。`);const self=Math.floor(p.maxHp*.10);p.hp=Math.max(0,p.hp-self);battleLog('systemlog',`${p.name}は反動で${self}ダメージ。`)}
+  else if(id==='slimeDraw'){const r=damageCombat(p,e,power,'pleasure');e.nuru=3;battleLog('playerlog',`「スライムドロウ」！ 犬娘に${damageText(r)}。【ヌルヌル】を3ターン付与。`)}
+  else if(id==='heal'){const h=healCombat(p,p.maxHp*.05+effectiveMag(p));battleLog('playerlog',`「ヒール」！ HPを${h}回復。`)}
+  else if(id==='run'){p.spdBonus+=3;battleLog('playerlog',`「駆け回る」！ 戦闘終了まで素早さ+3。`)}
+  else if(id==='negotiate'){const eh=healCombat(e,e.maxHp*.10),ph=healCombat(p,p.maxHp*.30);battleLog('playerlog',`「交渉術」！ 犬娘のHPが${eh}回復し、${p.name}のHPが${ph}回復。`)}
+  else if(id==='manaShot'){const r=damageCombat(p,e,effectiveMag(p)*1.6,'magic');battleLog('playerlog',`「マナショット」！ 犬娘に${damageText(r)}。`)}
+  else if(id==='manaCharge'){p.manaBuffTurns=2;battleLog('playerlog',`「マナチャージ」！ 次のターン終了時まで魔力1.5倍。`)}
+  else if(id==='heavyStrike'){const r=damageCombat(p,e,effectiveAtk(p)*1.4,'physical');battleLog('playerlog',`「剛撃」！ 犬娘に${damageText(r)}。`)}
+  else if(id==='poison'){e.poison+=4;battleLog('playerlog',`「ポイズン」！ 犬娘に【毒4】を付与。現在【毒${e.poison}】。`)}
+  else if(id==='barrier'){const g=addBarrier(p,15);battleLog('playerlog',`「バリア展開」！ 【バリア${g}】を獲得。`)}
+  else if(id==='kiss'){const r=damageCombat(p,e,power*1.3,'pleasure');battleLog('playerlog',`「投げキッス」！ 犬娘に${damageText(r)}。`)}
+  else battleLog('systemlog',`「${s.name}」はこの戦闘版では効果未実装です。`);
+}
+function executeEnemyAction(id){const e=battle.enemy,p=battle.player;if(id==='normal'){const r=damageCombat(e,p,effectiveAtk(e),'physical');battleLog('enemylog',`犬娘の通常攻撃！ ${p.name}に${damageText(r)}。`)}else if(id==='bite'){const r=damageCombat(e,p,effectiveAtk(e)*.8,'physical');p.resMods.physical=clamp(p.resMods.physical-20,-100,90);battleLog('enemylog',`犬娘の「噛みつき」！ ${p.name}に${damageText(r)}。物理耐性-20%（戦闘終了まで）。`)}else if(id==='howl'){e.atkBuffTurns=3;battleLog('enemylog','犬娘の「遠吠え」！ 3ターンの間、攻撃力+50%。')}}
+function executeBattleItem(id){const it=ITEMS[id];if(!it||!(state.inventory[id]>0))return;state.inventory[id]--;
+  const p=battle.player,e=battle.enemy;
+  if(id==='potion'||id==='hiPotion'||id==='exPotion'){const pct=id==='potion'?0.30:id==='hiPotion'?0.60:0.90;const h=healCombat(p,p.maxHp*pct);battleLog('playerlog',`${it.name}を使用。HPを${h}回復。`)}
+  else if(id==='poisonPotion'||id==='deadlyPoison'){const x=id==='poisonPotion'?3:6;e.poison+=x;battleLog('playerlog',`${it.name}を使用。犬娘に【毒${x}】。現在【毒${e.poison}】。`)}
+  else if(id==='simpleBarrier'){const g=addBarrier(p,10);battleLog('playerlog',`${it.name}を使用。【バリア${g}】を獲得。`)}
+  else if(id==='multiBarrier'){let total=0;for(let i=0;i<3;i++)total+=addBarrier(p,10);battleLog('playerlog',`${it.name}を使用。バリア獲得を3回行い、合計${total}獲得。`)}
+  else if(id==='ironShield'||id==='magicGuard'||id==='heartGuard'){const type=id==='ironShield'?'physical':id==='magicGuard'?'magic':'pleasure';p.resBuffs[type].push({amount:30,turns:3});battleLog('playerlog',`${it.name}を使用。3ターンの間、${{physical:'物理',magic:'魔導',pleasure:'快楽'}[type]}耐性+30%。`)}
+  else if(id==='panacea'){p.poison=0;p.nuru=0;p.exhausted=0;p.vulnerable=0;for(const k of ['physical','magic','pleasure'])if(p.resMods[k]<0)p.resMods[k]=0;battleLog('playerlog','万能薬を使用。自身のデバフをすべて解除。')}
+}
+function processTurnEnd(){
+  const p=battle.player,e=battle.enemy;
+  for(const c of [p,e]){if(c.poison>0&&c.hp>0){const x=c.poison,r=pureStatusDamage(c,x*2);battleLog(c.kind==='player'?'enemylog':'playerlog',`${c.name}は【毒${x}】で${damageText(r)}。`);c.poison=Math.max(0,c.poison-1);if(c.poison===0)battleLog('systemlog',`${c.name}の【毒】が解除された。`)}}
+  if(p.hp>0&&hasSkill('deepBreath')&&!battle.deepBreathUsed&&p.hp<=p.maxHp/2){const h=healCombat(p,p.maxHp*.20);battle.deepBreathUsed=true;battleLog('playerlog',`「深呼吸」が発動！ HPを${h}回復。`)}
+  if(e.hp>0&&hasSkill('charm')){e.resMods.pleasure=clamp(e.resMods.pleasure-2,-100,90);battleLog('playerlog','「隠しきれない魅力」で犬娘の快楽耐性-2%。')}
+  decrementDurations(p);decrementDurations(e);
+}
+function decrementDurations(c){
+  for(const key of ['nuru','exhausted','vulnerable','atkBuffTurns','manaBuffTurns'])if(c[key]>0)c[key]--;
+  for(const type of ['physical','magic','pleasure']){for(const b of c.resBuffs[type])b.turns--;c.resBuffs[type]=c.resBuffs[type].filter(b=>b.turns>0)}
+}
+function checkBattleEnd(){if(!battle||battle.over)return;if(battle.player.hp<=0&&battle.enemy.hp<=0)finishBattle('draw');else if(battle.enemy.hp<=0)finishBattle('win');else if(battle.player.hp<=0)finishBattle('lose')}
+function finishBattle(result){
+  battle.over=true;document.getElementById('battleCommands').style.display='none';const box=document.getElementById('battleResult');box.classList.add('show');
+  if(result==='win'){state.rank=2;state.rankCap=10;state.rankLosses=0;save();battleLog('systemlog','勝利！ ランク2へ昇格。レベル上限がLv.10になった。');box.innerHTML=`<div class="notice"><b>勝利！ ランク2へ昇格しました。</b><br>レベル上限：Lv.5 → Lv.10<br><span class="tiny">保留EXPは次回の放置育成結果処理で使用されます。ランク戦の金貨報酬はまだ未設定です。</span></div><button class="btn" id="battleReturnHome" style="width:100%;margin-top:10px">ホームへ戻る</button>`}
+  else {state.rankLosses=(state.rankLosses||0)+1;save();const b=retryBonusPct();battleLog('systemlog',result==='draw'?'相打ち……今回は敗北扱い。':'敗北……。');box.innerHTML=`<div class="notice danger"><b>${result==='draw'?'相打ち。今回は敗北扱いです。':'敗北しました。'}</b><br>次回の再挑戦補正：与ダメ+${b}% / 被ダメ-${b}%</div><button class="btn" id="battleReturnHome" style="width:100%;margin-top:10px">ホームへ戻る</button>`}
+  document.getElementById('battleReturnHome').onclick=returnFromBattle;renderBattle();
+}
+function returnFromBattle(){document.getElementById('battleModal').classList.remove('show');battle=null;render();showScreen('home')}
+function statusChips(c){const a=[];if(c.barrier>0)a.push(['buff',`バリア${c.barrier}`]);if(c.poison>0)a.push(['debuff',`毒${c.poison}`]);if(c.nuru>0)a.push(['debuff',`ヌルヌル ${c.nuru}T`]);if(c.exhausted>0)a.push(['debuff',`虚脱 ${c.exhausted}T`]);if(c.vulnerable>0)a.push(['debuff',`脆弱 ${c.vulnerable}T`]);if(c.atkBuffTurns>0)a.push(['buff',`攻撃+50% ${c.atkBuffTurns}T`]);if(c.manaBuffTurns>0)a.push(['buff',`魔力×1.5 ${c.manaBuffTurns}T`]);if(c.spdBonus)a.push(['buff',`素早さ+${c.spdBonus}`]);for(const type of ['physical','magic','pleasure']){const sum=(c.resBuffs[type]||[]).reduce((x,b)=>x+b.amount,0);if(sum)a.push(['buff',`${{physical:'物理',magic:'魔導',pleasure:'快楽'}[type]}耐性+${sum}%`])}if(c.defending)a.push(['buff','防御']);return a.map(([cl,t])=>`<span class="status-chip ${cl}">${t}</span>`).join('')}
+function renderBattle(){if(!battle)return;const p=battle.player,e=battle.enemy;document.getElementById('battleTurnText').textContent=`TURN ${battle.turn}`;document.getElementById('battleBonusText').textContent=battle.bonus?`再挑戦 +${battle.bonus}% / -${battle.bonus}%`:'再挑戦補正なし';document.getElementById('battlePlayerName').textContent=p.name;document.getElementById('battlePlayerSub').textContent=`Lv.${state.level} / 指示成功率 ${bondCommandRate()}%`;
+  document.getElementById('enemyHpText').textContent=`${e.hp} / ${e.maxHp}`;document.getElementById('playerHpText').textContent=`${p.hp} / ${p.maxHp}`;document.getElementById('enemyHpFill').style.width=`${Math.max(0,e.hp/e.maxHp*100)}%`;document.getElementById('playerHpFill').style.width=`${Math.max(0,p.hp/p.maxHp*100)}%`;
+  document.getElementById('enemyResText').textContent=`物理 ${formatPct(effectiveRes(e,'physical'))} / 魔導 ${formatPct(effectiveRes(e,'magic'))} / 快楽 ${formatPct(effectiveRes(e,'pleasure'))}`;document.getElementById('playerResText').textContent=`物理 ${formatPct(effectiveRes(p,'physical'))} / 魔導 ${formatPct(effectiveRes(p,'magic'))} / 快楽 ${formatPct(effectiveRes(p,'pleasure'))}`;document.getElementById('enemyStatuses').innerHTML=statusChips(e);document.getElementById('playerStatuses').innerHTML=statusChips(p);
+  const log=document.getElementById('battleLog');log.innerHTML=battle.logs.map(x=>`<div class="${x.cls}">${esc(x.text)}</div>`).join('');log.scrollTop=log.scrollHeight;renderBattleSkillMenu();renderBattleItemMenu();
+}
+function renderBattleSkillMenu(){if(!battle)return;const ids=state.skills.filter(id=>SKILLS[id]?.type==='アクティブ');document.getElementById('battleSkillMenu').innerHTML=ids.length?ids.map(id=>`<button class="battle-option" data-bskill="${id}" ${battle.usedSkills.has(id)||battle.over?'disabled':''}><b>${esc(SKILLS[id].name)}${battle.usedSkills.has(id)?'（使用済み）':''}</b><small>${esc(SKILLS[id].desc)}</small></button>`).join(''):'<div class="tiny">使用できるアクティブスキルがありません。</div>';document.querySelectorAll('[data-bskill]').forEach(b=>b.onclick=()=>submitBattleAction({kind:'skill',id:b.dataset.bskill}))}
+function renderBattleItemMenu(){if(!battle)return;const ids=Object.keys(state.inventory).filter(id=>state.inventory[id]>0&&ITEMS[id]?.kind==='戦闘');document.getElementById('battleItemMenu').innerHTML=ids.length?ids.map(id=>`<button class="battle-option" data-bitem="${id}" ${battle.over?'disabled':''}><b>${esc(ITEMS[id].name)} ×${state.inventory[id]}</b><small>${esc(ITEMS[id].desc)}</small></button>`).join(''):'<div class="tiny">戦闘アイテムを持っていません。</div>';document.querySelectorAll('[data-bitem]').forEach(b=>b.onclick=()=>submitBattleAction({kind:'item',id:b.dataset.bitem}))}
+function closeBattleSubmenus(){document.getElementById('battleSkillMenu').classList.remove('show');document.getElementById('battleItemMenu').classList.remove('show')}
+function toggleBattleSubmenu(which){const sk=document.getElementById('battleSkillMenu'),it=document.getElementById('battleItemMenu');if(which==='skill'){it.classList.remove('show');sk.classList.toggle('show')}else{sk.classList.remove('show');it.classList.toggle('show')}}
 function checkOffline(){if(state.training && Date.now()>=state.training.endAt){completeTraining()}}
 
 // events
@@ -341,7 +540,8 @@ document.getElementById('startTraining').onclick=startTraining;document.getEleme
 document.getElementById('devMode').onchange=e=>{state.devMode=e.target.checked;save();render()};
 document.getElementById('closeResult').onclick=()=>{document.getElementById('resultModal').classList.remove('show');if(!checkSkillOverflow())showScreen('home')};
 document.getElementById('confirmSkillManage').onclick=()=>{confirmSkillManage();showScreen('home')};
-document.getElementById('closeTrainingItem').onclick=()=>document.getElementById('trainingItemModal').classList.remove('show');document.getElementById('closeBattle').onclick=()=>document.getElementById('battleModal').classList.remove('show');
+document.getElementById('closeTrainingItem').onclick=()=>document.getElementById('trainingItemModal').classList.remove('show');document.getElementById('closeBattle').onclick=()=>{if(!battle)document.getElementById('battleModal').classList.remove('show')};
+document.getElementById('startBattle').onclick=startRankBattle;document.querySelectorAll('[data-bcmd]').forEach(b=>b.onclick=()=>{const k=b.dataset.bcmd;if(k==='skill'||k==='item')toggleBattleSubmenu(k);else submitBattleAction({kind:k})});
 document.getElementById('saveName').onclick=saveMonsterName;document.getElementById('closeName').onclick=()=>document.getElementById('nameModal').classList.remove('show');document.getElementById('nameInput').onkeydown=e=>{if(e.key==='Enter')saveMonsterName()};
 document.getElementById('resetSave').onclick=()=>{if(confirm('セーブデータを初期化しますか？')){localStorage.removeItem(SAVE_KEY);state=initialState();save();render();showScreen('home')}};
 window.addEventListener('focus',checkOffline);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkOffline()});
