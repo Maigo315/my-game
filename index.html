@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>魔物娘放置育成 - 最小プロトタイプ</title>
+<title>魔物娘放置育成 - Prototype v0.2</title>
 <style>
   :root{
     --bg:#11151a; --panel:#1a2129; --panel2:#202a34; --text:#eef6f0; --muted:#9eb0a6;
@@ -11,7 +11,7 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(180deg,#0e1317,#17211d 55%,#101519);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;min-height:100vh}
-  button,select{font:inherit}
+  button,select,input{font:inherit}
   button{cursor:pointer}
   .app{width:min(100%,480px);margin:0 auto;min-height:100vh;background:rgba(12,18,22,.92);border-left:1px solid #22302a;border-right:1px solid #22302a;position:relative;padding-bottom:94px}
   header{position:sticky;top:0;z-index:10;background:rgba(15,21,25,.95);backdrop-filter:blur(10px);padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
@@ -23,6 +23,7 @@
   .blob:before,.blob:after{content:"";position:absolute;width:12px;height:18px;border-radius:50%;background:#173126;top:45px}.blob:before{left:43px}.blob:after{right:43px}
   .mouth{position:absolute;width:28px;height:14px;border-bottom:4px solid #173126;border-radius:0 0 50% 50%;left:55px;top:70px}
   .hero small{color:var(--muted)}
+  .hero-name{font-size:24px;font-weight:900;margin-top:2px}.hero-species{font-size:13px;color:var(--muted);margin-top:2px}.mini-btn{margin-top:8px;border:1px solid var(--line);background:#11191f;color:#cbd8d0;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:750}.mini-btn:active{transform:translateY(1px)}
   .row{display:flex;gap:8px;align-items:center}.row.wrap{flex-wrap:wrap}.space{justify-content:space-between}
   .pill{background:#10171c;border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted);font-size:12px}
   .level{font-size:20px;font-weight:850}.species{font-size:24px;font-weight:900;margin-top:2px}
@@ -41,17 +42,21 @@
   .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px}.toggle input{width:46px;height:25px}
   .tiny{font-size:11px;color:var(--muted);line-height:1.45}.good{color:var(--accent2)}.bad{color:#ffb0b0}.gold{color:var(--warn)}
   .footer-note{font-size:11px;color:#81948a;text-align:center;padding:4px 12px 12px}
+  .text-input{width:100%;background:#0f171c;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px;margin:8px 0 6px;outline:none}.text-input:focus{border-color:var(--accent)}
+  .item-actions{display:flex;justify-content:flex-end;margin-top:8px}.btn.small{padding:8px 12px;border-radius:11px;font-size:12px}
 </style>
 </head>
 <body>
 <div class="app">
-  <header><div class="title">魔物娘放置育成 <span class="tag">PROTO</span></div><div class="money" id="goldHeader">0G</div></header>
+  <header><div class="title">魔物娘放置育成 <span class="tag">v0.2</span></div><div class="money" id="goldHeader">0G</div></header>
   <main>
     <section id="home" class="screen active">
       <div class="card hero">
         <div class="blob"><div class="mouth"></div></div>
-        <div class="species">スライム娘</div>
+        <div class="hero-name" id="heroName">スライム娘</div>
+        <div class="hero-species" id="heroSpecies" style="display:none">種族：スライム娘</div>
         <div class="level" id="heroLevel">Lv.1</div>
+        <button class="mini-btn" id="renameFromHome">名前変更</button>
         <small>画像は後から差し替えできます</small>
       </div>
       <div class="card">
@@ -95,17 +100,23 @@
 
     <section id="shop" class="screen"><div class="card"><h2>ショップ</h2><div class="muted">固定ラインナップ（プロトタイプ）</div></div><div id="shopList" class="list"></div></section>
 
-    <section id="status" class="screen"><div class="card"><h2>詳細ステータス</h2><div id="fullStats" class="grid"></div></div><div class="card"><h3>育成ステータス</h3><div id="trainingStats" class="grid"></div></div><div class="card"><h3>開発用</h3><button class="btn danger" id="resetSave">セーブデータ初期化</button><div class="tiny" style="margin-top:8px">この端末・ブラウザのlocalStorageのみを初期化します。</div></div></section>
+    <section id="status" class="screen">
+      <div class="card"><h2>プロフィール</h2><div class="row space"><div><div class="tiny">名前</div><b id="profileName">スライム娘</b><div class="tiny" id="profileSpecies">種族：スライム娘</div></div><button class="btn secondary small" id="renameFromStatus">名前変更</button></div></div>
+      <div class="card"><h2>詳細ステータス</h2><div id="fullStats" class="grid"></div></div>
+      <div class="card"><h3>育成ステータス</h3><div id="trainingStats" class="grid"></div></div>
+      <div class="card"><h3>開発用</h3><button class="btn danger" id="resetSave">セーブデータ初期化</button><div class="tiny" style="margin-top:8px">この端末・ブラウザのlocalStorageのみを初期化します。</div></div>
+    </section>
   </main>
   <nav>
     <button data-screen="home" class="active">ホーム</button><button data-screen="training">育成</button><button data-screen="skills">スキル</button><button data-screen="items">持ち物</button><button data-screen="status">詳細</button>
   </nav>
-  <div class="footer-note">戦闘・ランク戦・進化は次段階で実装予定</div>
+  <div class="footer-note">v0.2｜戦闘・ランク戦・進化は次段階で実装予定</div>
 </div>
 
 <div class="modal" id="resultModal"><div class="sheet"><h2>育成結果</h2><div id="resultContent"></div><button class="btn" id="closeResult" style="width:100%;margin-top:12px">ホームへ戻る</button></div></div>
 <div class="modal" id="skillManageModal"><div class="sheet"><h2>スキル整理</h2><div class="notice warn">所持上限は4個です。残すスキルを4個選んでください。</div><div id="skillManageList" class="list"></div><button class="btn" id="confirmSkillManage" style="width:100%;margin-top:12px">この4個を残す</button></div></div>
 <div class="modal" id="trainingItemModal"><div class="sheet"><h2>育成アイテム使用</h2><div id="trainingItemChoices" class="list"></div><button class="btn secondary" id="closeTrainingItem" style="width:100%;margin-top:12px">閉じる</button></div></div>
+<div class="modal" id="nameModal"><div class="sheet"><h2>名前変更</h2><div class="tiny">12文字まで。空欄にすると種族名「スライム娘」に戻ります。</div><input class="text-input" id="nameInput" type="text" maxlength="12" autocomplete="off" placeholder="名前を入力"><div class="row" style="margin-top:10px"><button class="btn" id="saveName" style="flex:1">決定</button><button class="btn secondary" id="closeName" style="flex:1">キャンセル</button></div></div></div>
 <div class="modal" id="battleModal"><div class="sheet"><h2>ランク戦</h2><div id="battleModalText" class="notice"></div><button class="btn secondary" id="closeBattle" style="width:100%">閉じる</button></div></div>
 
 <script>
@@ -116,6 +127,7 @@ const round2=n=>Math.round((n+Number.EPSILON)*100)/100;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const floorDisplay=n=>Math.floor(Number(n)||0);
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+const esc=str=>String(str??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 
 const POLICIES={
   relaxed:{name:'のびのび育成',growth:{hp:20,atk:-10,mag:0,spd:0},training:{bond:2},desc:'HP成長+20% / 絆+2 / 攻撃成長-10%'},
@@ -183,9 +195,9 @@ const EVENTS=[
  {id:'travelerItem',name:'旅人と仲良くなったことを楽しそうに話している。アイテムも貰ったようだ。',desc:'好色度+3。アイテムを追加で1個入手。'},
  {id:'hardTrain',name:'とにかく頑張って特訓に励んだ！',desc:'今回の獲得経験値+50%。'}
 ];
-function initialState(){return {version:1,level:1,exp:0,gold:0,rankCap:5,stats:{hp:40,atk:7,mag:7,spd:4,bond:0},trainingStats:{size:3,predation:2,intellect:2,lust:2},skills:['tackle','jiggly','slimeDraw'],skillCap:4,skillFailCount:0,inventory:{},trainingItemReady:true,nextTraining:{expBonus:0},training:null,devMode:true,lastResult:null};}
+function initialState(){return {version:2,monsterName:'',level:1,exp:0,gold:0,rankCap:5,stats:{hp:40,atk:7,mag:7,spd:4,bond:0},trainingStats:{size:3,predation:2,intellect:2,lust:2},skills:['tackle','jiggly','slimeDraw'],skillCap:4,skillFailCount:0,inventory:{},trainingItemReady:true,nextTraining:{expBonus:0},training:null,devMode:true,lastResult:null};}
 let state=load(); let selectedPolicy='relaxed'; let timerHandle=null;
-function load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return initialState();return Object.assign(initialState(),JSON.parse(raw));}catch(e){return initialState()}}
+function load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return initialState();const loaded=Object.assign(initialState(),JSON.parse(raw));loaded.version=2;if(typeof loaded.monsterName!=='string')loaded.monsterName='';return loaded;}catch(e){return initialState()}}
 function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state))}
 function expNeed(lv){return 10+lv*2}
 function hasSkill(id){return state.skills.includes(id)}
@@ -194,6 +206,11 @@ function displayNum(n){return floorDisplay(n).toLocaleString('ja-JP')}
 function showScreen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.screen===id));render()}
 function render(){
   document.getElementById('goldHeader').textContent=displayNum(state.gold)+'G';
+  const displayName=(state.monsterName||'').trim()||'スライム娘';
+  document.getElementById('heroName').textContent=displayName;
+  document.getElementById('heroSpecies').style.display=state.monsterName?'block':'none';
+  document.getElementById('profileName').textContent=displayName;
+  document.getElementById('profileSpecies').textContent='種族：スライム娘';
   document.getElementById('heroLevel').textContent='Lv.'+state.level;
   const cap=state.level>=state.rankCap; const need=expNeed(state.level); const pct=cap?100:Math.min(100,state.exp/need*100);
   document.getElementById('xpFill').style.width=pct+'%';
@@ -219,13 +236,40 @@ function updateTimer(){if(!state.training)return;const remain=Math.max(0,state.t
 function renderInventory(){
   const entries=Object.entries(state.inventory).filter(([,n])=>n>0).sort((a,b)=>ITEMS[a[0]].rarity-ITEMS[b[0]].rarity||ITEMS[a[0]].name.localeCompare(ITEMS[b[0]].name,'ja'));
   document.getElementById('trainingItemRight').innerHTML=`<div class="notice ${state.trainingItemReady?'':'warn'}">育成アイテム使用権：<b>${state.trainingItemReady?'使用可能':'使用済み'}</b></div>`;
-  document.getElementById('inventoryList').innerHTML=entries.length?entries.map(([id,n])=>{const it=ITEMS[id];return `<div class="item"><div class="row space"><div class="name">${'⭐'.repeat(it.rarity)} ${it.name}<span class="tag">${it.kind}</span></div><div class="inventory-count">×${n}</div></div><div class="desc">${it.desc}</div></div>`}).join(''):'<div class="card muted">まだアイテムを持っていません。</div>';
+  document.getElementById('inventoryList').innerHTML=entries.length?entries.map(([id,n])=>{
+    const it=ITEMS[id];
+    const canUse=it.kind==='育成' && state.trainingItemReady && !state.training;
+    const useArea=it.kind==='育成'?`<div class="item-actions"><button class="btn small use-from-inventory" data-id="${id}" ${canUse?'':'disabled'}>${state.training?'育成中':'使用する'}</button></div>`:'';
+    return `<div class="item"><div class="row space"><div class="name">${'⭐'.repeat(it.rarity)} ${esc(it.name)}<span class="tag">${esc(it.kind)}</span></div><div class="inventory-count">×${n}</div></div><div class="desc">${esc(it.desc)}</div>${useArea}</div>`
+  }).join(''):'<div class="card muted">まだアイテムを持っていません。</div>';
+  document.querySelectorAll('.use-from-inventory').forEach(b=>b.onclick=()=>useTrainingItemFromInventory(b.dataset.id));
 }
 function renderShop(){document.getElementById('shopList').innerHTML=Object.entries(SHOP).map(([id,price])=>{const it=ITEMS[id];return `<div class="item"><div class="row space"><div><div class="name">${it.name}</div><div class="desc">${it.desc}</div></div><button class="btn warn buy" data-buy="${id}">${price}G</button></div></div>`}).join('');document.querySelectorAll('.buy').forEach(b=>b.onclick=()=>buyItem(b.dataset.buy))}
 function addItem(id,count=1){const old=state.inventory[id]||0;const add=Math.min(count,99-old);state.inventory[id]=old+add;return {added:add,lost:count-add}}
 function buyItem(id){const price=SHOP[id];if(state.training){alert('放置育成中はショップを利用できません。');return}if(state.gold<price){alert('金貨が足りません。');return}if((state.inventory[id]||0)>=99){alert('所持上限99個です。');return}state.gold-=price;addItem(id,1);save();render()}
 function openTrainingItems(){if(state.training){alert('放置育成中は育成アイテムを使用できません。');return}const box=document.getElementById('trainingItemChoices');const ids=Object.keys(state.inventory).filter(id=>state.inventory[id]>0&&ITEMS[id].kind==='育成');if(!state.trainingItemReady){box.innerHTML='<div class="notice warn">次の放置育成が終わるまで、育成アイテムは使用できません。</div>'}else if(!ids.length){box.innerHTML='<div class="muted">使用できる育成アイテムを持っていません。</div>'}else{box.innerHTML=ids.map(id=>{const it=ITEMS[id];return `<div class="item"><div class="row space"><div><div class="name">${it.name} ×${state.inventory[id]}</div><div class="desc">${it.desc}</div></div><button class="btn use-training-item" data-id="${id}">使う</button></div></div>`}).join('');box.querySelectorAll('.use-training-item').forEach(b=>b.onclick=()=>useTrainingItem(b.dataset.id))}document.getElementById('trainingItemModal').classList.add('show')}
 function useTrainingItem(id){if(!state.trainingItemReady||!state.inventory[id]||ITEMS[id].kind!=='育成')return;ITEMS[id].use?.(state);state.inventory[id]--;state.trainingItemReady=false;save();document.getElementById('trainingItemModal').classList.remove('show');render();alert(`${ITEMS[id].name}を使用しました。`)}
+function useTrainingItemFromInventory(id){
+  const it=ITEMS[id];
+  if(!it||it.kind!=='育成'||!state.inventory[id])return;
+  if(state.training){alert('放置育成中は育成アイテムを使用できません。');return}
+  if(!state.trainingItemReady){alert('次の放置育成が終わるまで、育成アイテムは使用できません。');return}
+  if(!confirm(`${it.name}を使用しますか？\n${it.desc}`))return;
+  ITEMS[id].use?.(state);state.inventory[id]--;state.trainingItemReady=false;save();render();alert(`${it.name}を使用しました。`);
+}
+function openNameModal(){
+  const input=document.getElementById('nameInput');
+  input.value=state.monsterName||'';
+  document.getElementById('nameModal').classList.add('show');
+  setTimeout(()=>input.focus(),50);
+}
+function saveMonsterName(){
+  const input=document.getElementById('nameInput');
+  let name=input.value.trim();
+  name=Array.from(name).slice(0,12).join('');
+  state.monsterName=name;
+  save();render();document.getElementById('nameModal').classList.remove('show');
+}
 function startTraining(){if(state.training)return;const duration=state.devMode?30*1000:30*60*1000;state.training={policy:selectedPolicy,startAt:Date.now(),endAt:Date.now()+duration,duration};save();render();showScreen('training')}
 function cheer(){if(!state.training)return;state.training.endAt-=3000;save();updateTimer()}
 function rollRarity(){const r=Math.random()*100;return r<70?1:r<95?2:3}
@@ -292,11 +336,13 @@ function checkOffline(){if(state.training && Date.now()>=state.training.endAt){c
 // events
 for(const b of document.querySelectorAll('nav button'))b.onclick=()=>showScreen(b.dataset.screen);
 document.getElementById('goTraining').onclick=()=>showScreen('training');document.getElementById('goShop').onclick=()=>showScreen('shop');document.getElementById('goTrainingItem').onclick=openTrainingItems;document.getElementById('goBattle').onclick=openBattle;
+document.getElementById('renameFromHome').onclick=openNameModal;document.getElementById('renameFromStatus').onclick=openNameModal;
 document.getElementById('startTraining').onclick=startTraining;document.getElementById('cheerBtn').onclick=cheer;
 document.getElementById('devMode').onchange=e=>{state.devMode=e.target.checked;save();render()};
 document.getElementById('closeResult').onclick=()=>{document.getElementById('resultModal').classList.remove('show');if(!checkSkillOverflow())showScreen('home')};
 document.getElementById('confirmSkillManage').onclick=()=>{confirmSkillManage();showScreen('home')};
 document.getElementById('closeTrainingItem').onclick=()=>document.getElementById('trainingItemModal').classList.remove('show');document.getElementById('closeBattle').onclick=()=>document.getElementById('battleModal').classList.remove('show');
+document.getElementById('saveName').onclick=saveMonsterName;document.getElementById('closeName').onclick=()=>document.getElementById('nameModal').classList.remove('show');document.getElementById('nameInput').onkeydown=e=>{if(e.key==='Enter')saveMonsterName()};
 document.getElementById('resetSave').onclick=()=>{if(confirm('セーブデータを初期化しますか？')){localStorage.removeItem(SAVE_KEY);state=initialState();save();render();showScreen('home')}};
 window.addEventListener('focus',checkOffline);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkOffline()});
 render();checkOffline();
