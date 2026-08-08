@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>魔物娘放置育成 - 最小プロトタイプ</title>
+<style>
+  :root{
+    --bg:#11151a; --panel:#1a2129; --panel2:#202a34; --text:#eef6f0; --muted:#9eb0a6;
+    --accent:#83d58b; --accent2:#b8efbd; --line:#34414b; --warn:#f4c46b; --danger:#f18787;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0e1317,#17211d 55%,#101519);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;min-height:100vh}
+  button,select{font:inherit}
+  button{cursor:pointer}
+  .app{width:min(100%,480px);margin:0 auto;min-height:100vh;background:rgba(12,18,22,.92);border-left:1px solid #22302a;border-right:1px solid #22302a;position:relative;padding-bottom:94px}
+  header{position:sticky;top:0;z-index:10;background:rgba(15,21,25,.95);backdrop-filter:blur(10px);padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .title{font-weight:800;letter-spacing:.03em}.money{color:var(--warn);font-weight:800}
+  main{padding:14px}.screen{display:none}.screen.active{display:block}
+  .card{background:linear-gradient(180deg,var(--panel),#151d24);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .hero{min-height:245px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden;position:relative}
+  .blob{width:138px;height:124px;border-radius:52% 48% 50% 50% / 60% 60% 40% 40%;background:radial-gradient(circle at 35% 30%,#c5ffd0,#6fcf80 45%,#2f7e4a 100%);box-shadow:0 0 50px rgba(131,213,139,.25);position:relative;margin-bottom:12px}
+  .blob:before,.blob:after{content:"";position:absolute;width:12px;height:18px;border-radius:50%;background:#173126;top:45px}.blob:before{left:43px}.blob:after{right:43px}
+  .mouth{position:absolute;width:28px;height:14px;border-bottom:4px solid #173126;border-radius:0 0 50% 50%;left:55px;top:70px}
+  .hero small{color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center}.row.wrap{flex-wrap:wrap}.space{justify-content:space-between}
+  .pill{background:#10171c;border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted);font-size:12px}
+  .level{font-size:20px;font-weight:850}.species{font-size:24px;font-weight:900;margin-top:2px}
+  .xpbar{height:10px;background:#0c1115;border-radius:99px;overflow:hidden;border:1px solid #2c3b34;margin-top:7px}.xpfill{height:100%;background:linear-gradient(90deg,#71c77c,#c4ef94)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{background:#11181e;border:1px solid #2d3942;border-radius:13px;padding:10px}.stat b{display:block;font-size:18px;margin-top:2px}.stat span{color:var(--muted);font-size:12px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:1px solid #385044;background:#21352a;color:#f2fff4;padding:13px 10px;border-radius:14px;font-weight:800}.btn:hover{filter:brightness(1.08)}.btn.secondary{background:#1b2730;border-color:#394a57}.btn.warn{background:#4a3b1f;border-color:#6d572b}.btn.danger{background:#452527;border-color:#6a383b}.btn:disabled{opacity:.45;cursor:not-allowed}
+  h2{font-size:19px;margin:4px 0 12px}h3{font-size:15px;margin:0 0 8px;color:var(--accent2)}
+  .choice{width:100%;text-align:left;background:#131c22;border:1px solid var(--line);border-radius:14px;color:var(--text);padding:12px;margin:6px 0}.choice.selected{outline:2px solid var(--accent);background:#1c3023}.choice strong{display:block}.choice small{display:block;color:var(--muted);margin-top:4px;line-height:1.5}
+  .timer{font-variant-numeric:tabular-nums;font-size:42px;font-weight:900;letter-spacing:.05em;text-align:center;margin:10px 0}.center{text-align:center}.muted{color:var(--muted)}
+  .list{display:flex;flex-direction:column;gap:8px}.item{border:1px solid var(--line);border-radius:13px;padding:10px;background:#121a20}.item .name{font-weight:800}.item .desc{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}.tag{font-size:11px;border:1px solid #4c5d68;border-radius:99px;padding:2px 6px;color:#c8d2d8;margin-left:5px}
+  .inventory-count{font-weight:900;color:var(--warn)}
+  nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,480px);display:grid;grid-template-columns:repeat(5,1fr);background:rgba(12,17,21,.97);border-top:1px solid var(--line);padding:7px 6px calc(7px + env(safe-area-inset-bottom));z-index:20}nav button{background:none;border:0;color:#9db0a5;padding:8px 2px;font-size:11px}nav button.active{color:var(--accent2);font-weight:850}
+  .notice{border-left:4px solid var(--accent);padding:9px 10px;background:#14241a;border-radius:9px;margin:8px 0;line-height:1.45}.notice.warn{border-color:var(--warn);background:#2b2416}.notice.danger{border-color:var(--danger);background:#2b191b}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:none;align-items:flex-end;justify-content:center}.modal.show{display:flex}.sheet{width:min(100%,480px);max-height:88vh;overflow:auto;background:#12191f;border:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 14px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.45)}
+  .result-step{padding:10px 0;border-bottom:1px solid #29343d;line-height:1.55}.result-step:last-child{border-bottom:0}.big-event{font-size:18px;font-weight:900;color:var(--accent2)}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px}.toggle input{width:46px;height:25px}
+  .tiny{font-size:11px;color:var(--muted);line-height:1.45}.good{color:var(--accent2)}.bad{color:#ffb0b0}.gold{color:var(--warn)}
+  .footer-note{font-size:11px;color:#81948a;text-align:center;padding:4px 12px 12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><div class="title">魔物娘放置育成 <span class="tag">PROTO</span></div><div class="money" id="goldHeader">0G</div></header>
+  <main>
+    <section id="home" class="screen active">
+      <div class="card hero">
+        <div class="blob"><div class="mouth"></div></div>
+        <div class="species">スライム娘</div>
+        <div class="level" id="heroLevel">Lv.1</div>
+        <small>画像は後から差し替えできます</small>
+      </div>
+      <div class="card">
+        <div class="row space"><b>経験値</b><span id="expText" class="muted"></span></div>
+        <div class="xpbar"><div id="xpFill" class="xpfill" style="width:0%"></div></div>
+        <div id="rankNotice"></div>
+      </div>
+      <div class="card"><div class="grid" id="quickStats"></div></div>
+      <div class="card">
+        <h3>ホーム</h3>
+        <div class="actions">
+          <button class="btn" id="goTraining">放置育成</button>
+          <button class="btn secondary" id="goBattle">戦闘</button>
+          <button class="btn warn" id="goShop">ショップ</button>
+          <button class="btn secondary" id="goTrainingItem">育成アイテム使用</button>
+        </div>
+      </div>
+      <div id="trainingStatusHome"></div>
+    </section>
+
+    <section id="training" class="screen">
+      <div class="card"><h2>放置育成</h2><div class="notice">場所はプロトタイプでは「草原」のみです。</div>
+        <div class="choice selected"><strong>🌱 草原</strong><small>EXP 40 / 25G / 絆+3 / 素早さ成長補正+20%</small></div>
+      </div>
+      <div class="card" id="trainingSetup">
+        <h3>育成方針</h3><div id="policyChoices"></div>
+        <button class="btn" id="startTraining" style="width:100%;margin-top:10px">草原へ送り出す</button>
+      </div>
+      <div class="card" id="trainingRunning" style="display:none">
+        <div class="center muted">草原で育成中...</div><div class="timer" id="timer">00:30</div>
+        <div class="center"><span class="pill" id="runningPolicy"></span></div>
+        <button class="btn" id="cheerBtn" style="width:100%;margin-top:14px">がんばれ！ -3秒</button>
+        <div class="tiny center" style="margin-top:8px">ブラウザを閉じても、開始時刻から経過時間を判定します。</div>
+      </div>
+      <div class="card"><div class="toggle"><div><b>開発モード</b><div class="tiny">ON: 30秒 / OFF: 30分</div></div><input id="devMode" type="checkbox"></div></div>
+    </section>
+
+    <section id="skills" class="screen"><div class="card"><h2>スキル</h2><div class="row space"><span class="muted">所持上限</span><b id="skillCapText">0 / 4</b></div></div><div id="skillList" class="list"></div></section>
+
+    <section id="items" class="screen"><div class="card"><h2>持ち物</h2><div class="tiny">各アイテム所持上限99。育成アイテムは使用権がある時だけ1個使用できます。</div><div id="trainingItemRight"></div></div><div id="inventoryList" class="list"></div></section>
+
+    <section id="shop" class="screen"><div class="card"><h2>ショップ</h2><div class="muted">固定ラインナップ（プロトタイプ）</div></div><div id="shopList" class="list"></div></section>
+
+    <section id="status" class="screen"><div class="card"><h2>詳細ステータス</h2><div id="fullStats" class="grid"></div></div><div class="card"><h3>育成ステータス</h3><div id="trainingStats" class="grid"></div></div><div class="card"><h3>開発用</h3><button class="btn danger" id="resetSave">セーブデータ初期化</button><div class="tiny" style="margin-top:8px">この端末・ブラウザのlocalStorageのみを初期化します。</div></div></section>
+  </main>
+  <nav>
+    <button data-screen="home" class="active">ホーム</button><button data-screen="training">育成</button><button data-screen="skills">スキル</button><button data-screen="items">持ち物</button><button data-screen="status">詳細</button>
+  </nav>
+  <div class="footer-note">戦闘・ランク戦・進化は次段階で実装予定</div>
+</div>
+
+<div class="modal" id="resultModal"><div class="sheet"><h2>育成結果</h2><div id="resultContent"></div><button class="btn" id="closeResult" style="width:100%;margin-top:12px">ホームへ戻る</button></div></div>
+<div class="modal" id="skillManageModal"><div class="sheet"><h2>スキル整理</h2><div class="notice warn">所持上限は4個です。残すスキルを4個選んでください。</div><div id="skillManageList" class="list"></div><button class="btn" id="confirmSkillManage" style="width:100%;margin-top:12px">この4個を残す</button></div></div>
+<div class="modal" id="trainingItemModal"><div class="sheet"><h2>育成アイテム使用</h2><div id="trainingItemChoices" class="list"></div><button class="btn secondary" id="closeTrainingItem" style="width:100%;margin-top:12px">閉じる</button></div></div>
+<div class="modal" id="battleModal"><div class="sheet"><h2>ランク戦</h2><div id="battleModalText" class="notice"></div><button class="btn secondary" id="closeBattle" style="width:100%">閉じる</button></div></div>
+
+<script>
+(() => {
+'use strict';
+const SAVE_KEY='monsterGirlIdleProto_v1';
+const round2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const floorDisplay=n=>Math.floor(Number(n)||0);
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+
+const POLICIES={
+  relaxed:{name:'のびのび育成',growth:{hp:20,atk:-10,mag:0,spd:0},training:{bond:2},desc:'HP成長+20% / 絆+2 / 攻撃成長-10%'},
+  hunting:{name:'狩猟訓練',growth:{hp:0,atk:25,mag:-10,spd:0},training:{predation:3},desc:'攻撃成長+25% / 捕食性+3 / 魔力成長-10%'},
+  magic:{name:'魔導学習',growth:{hp:-10,atk:0,mag:25,spd:0},training:{intellect:3},desc:'魔力成長+25% / 知性+3 / HP成長-10%'},
+  free:{name:'自由行動',growth:{hp:0,atk:0,mag:0,spd:20},training:{lust:3,bond:-1},desc:'素早さ成長+20% / 好色度+3 / 絆-1'}
+};
+const SKILLS={
+  tackle:{name:'体当たり',type:'アクティブ',desc:'敵に15物理ダメージ。自分に最大HPの10%の無属性ダメージ。'},
+  jiggly:{name:'ぷるぷるボディ',type:'パッシブ',desc:'戦闘中、敵から最初に受けるダメージを半分にする。'},
+  slimeDraw:{name:'スライムドロウ',type:'アクティブ',desc:'敵に基準威力×1.0の快楽ダメージ。3ターンの間【ヌルヌル】付与。'},
+  heal:{name:'ヒール',type:'アクティブ',desc:'自分のHPを、最大HPの5%＋魔力×1.0回復。'},
+  run:{name:'駆け回る',type:'アクティブ',desc:'戦闘終了まで、素早さ+3。'},
+  negotiate:{name:'交渉術',type:'アクティブ',desc:'敵のHP10%回復、自分のHP30%回復。'},
+  manaShot:{name:'マナショット',type:'アクティブ',desc:'敵に魔力×1.6の魔導ダメージ。'},
+  manaCharge:{name:'マナチャージ',type:'アクティブ',desc:'次のターン終了時まで、自分の魔力を1.5倍にする。'},
+  heavyStrike:{name:'剛撃',type:'アクティブ',desc:'敵に攻撃力×1.4の物理ダメージ。'},
+  poison:{name:'ポイズン',type:'アクティブ',desc:'敵に【毒4】を付与。'},
+  barrier:{name:'バリア展開',type:'アクティブ',desc:'【バリア15】を獲得。'},
+  kiss:{name:'投げキッス',type:'アクティブ',desc:'敵に基準威力×1.3の快楽ダメージ。'},
+  deepBreath:{name:'深呼吸',type:'パッシブ',desc:'ターン終了時、自分のHPが半分以下なら、最大HP×20%回復。（1戦闘に1度）'},
+  eyes:{name:'つぶらなひとみ',type:'パッシブ',desc:'1ターン目開始時に発動。敵に1ターンの間【虚脱】を付与。'},
+  charm:{name:'隠しきれない魅力',type:'パッシブ',desc:'ターン終了ごとに、戦闘終了まで敵の快楽耐性-2%。'},
+  magicWall:{name:'魔力障壁',type:'パッシブ',desc:'魔導耐性+10%。'},
+  energetic:{name:'元気いっぱい',type:'パッシブ',desc:'放置育成時、獲得経験値+10%。',training:{exp:10}},
+  picker:{name:'拾い癖',type:'パッシブ',desc:'放置育成時、アイテム入手確率+15%。',training:{itemChance:15}},
+  walkLover:{name:'おさんぽ大好き',type:'パッシブ',desc:'草原での放置育成時、獲得経験値+15%・素早さ成長補正+10%。',training:{grassExp:15,grassSpd:10}},
+  shiny:{name:'光り物好き',type:'パッシブ',desc:'放置育成時、獲得金貨+10%。',training:{gold:10}}
+};
+const GRASS_SKILLS=['heal','run','negotiate','manaShot','manaCharge','heavyStrike','poison','barrier','kiss','deepBreath','eyes','charm','magicWall','energetic','picker','walkLover','shiny'];
+const ITEMS={
+  potion:{name:'ポーション',rarity:1,kind:'戦闘',desc:'HPを30%回復。'},
+  poisonPotion:{name:'毒ポーション',rarity:1,kind:'戦闘',desc:'敵に【毒3】を付与。'},
+  simpleBarrier:{name:'簡易バリア',rarity:1,kind:'戦闘',desc:'【バリア10】を獲得。'},
+  growMed:{name:'大きくなあれ',rarity:1,kind:'育成',desc:'大きさ+3。',use:s=>{s.trainingStats.size=clamp(s.trainingStats.size+3,0,100)}},
+  juicyMeat:{name:'ジューシーお肉',rarity:1,kind:'育成',desc:'捕食性+3。',use:s=>{s.trainingStats.predation=clamp(s.trainingStats.predation+3,0,100)}},
+  glasses:{name:'インテリメガネ',rarity:1,kind:'育成',desc:'知性+3。',use:s=>{s.trainingStats.intellect=clamp(s.trainingStats.intellect+3,0,100)}},
+  milk:{name:'ミルク',rarity:1,kind:'育成',desc:'好色度+3。',use:s=>{s.trainingStats.lust=clamp(s.trainingStats.lust+3,0,100)}},
+  present:{name:'プレゼント',rarity:1,kind:'育成',desc:'絆値+5。',use:s=>{s.stats.bond=clamp(s.stats.bond+5,0,100)}},
+  badPresent:{name:'微妙なプレゼント',rarity:1,kind:'育成',desc:'絆値-10。',use:s=>{s.stats.bond=clamp(s.stats.bond-10,0,100)}},
+  hiPotion:{name:'ハイポーション',rarity:2,kind:'戦闘',desc:'HPを60%回復。'},
+  ironShield:{name:'鉄壁シールド',rarity:2,kind:'戦闘',desc:'3ターンの間、物理耐性+30%。'},
+  magicGuard:{name:'魔導ウォール',rarity:2,kind:'戦闘',desc:'3ターンの間、魔導耐性+30%。'},
+  heartGuard:{name:'ハートガード',rarity:2,kind:'戦闘',desc:'3ターンの間、快楽耐性+30%。'},
+  panacea:{name:'万能薬',rarity:2,kind:'戦闘',desc:'自身のデバフを全て解除する。'},
+  monsterFood:{name:'モンスターフード',rarity:2,kind:'育成',desc:'絆値+5。捕食性+5。',use:s=>{s.stats.bond=clamp(s.stats.bond+5,0,100);s.trainingStats.predation=clamp(s.trainingStats.predation+5,0,100)}},
+  toughness:{name:'タフネスドリンク',rarity:2,kind:'育成',desc:'最大HP+5。',use:s=>{s.stats.hp=round2(s.stats.hp+5)}},
+  dumbbell:{name:'ダンベル',rarity:2,kind:'育成',desc:'攻撃力+1。',use:s=>{s.stats.atk=round2(s.stats.atk+1)}},
+  magicBook:{name:'魔導入門書',rarity:2,kind:'育成',desc:'魔力+1。',use:s=>{s.stats.mag=round2(s.stats.mag+1)}},
+  shoes:{name:'身軽なシューズ',rarity:2,kind:'育成',desc:'素早さ+1。',use:s=>{s.stats.spd=round2(s.stats.spd+1)}},
+  backpack:{name:'旅のリュック',rarity:2,kind:'育成',desc:'次の放置育成時の獲得経験値+30%。',use:s=>{s.nextTraining.expBonus=(s.nextTraining.expBonus||0)+30}},
+  easternMed:{name:'東方の秘薬',rarity:3,kind:'育成',desc:'大きさ+10。絆値-10。',use:s=>{s.trainingStats.size=clamp(s.trainingStats.size+10,0,100);s.stats.bond=clamp(s.stats.bond-10,0,100)}},
+  lawBook:{name:'六法全書',rarity:3,kind:'育成',desc:'知性+10。絆値-5。',use:s=>{s.trainingStats.intellect=clamp(s.trainingStats.intellect+10,0,100);s.stats.bond=clamp(s.stats.bond-5,0,100)}},
+  tastyMilk:{name:'おいしいミルク',rarity:3,kind:'育成',desc:'絆値+10。好色度+10。',use:s=>{s.stats.bond=clamp(s.stats.bond+10,0,100);s.trainingStats.lust=clamp(s.trainingStats.lust+10,0,100)}},
+  exPotion:{name:'エクスポーション',rarity:3,kind:'戦闘',desc:'HPを90%回復。'},
+  deadlyPoison:{name:'猛毒ポーション',rarity:3,kind:'戦闘',desc:'敵に【毒6】を付与。'},
+  multiBarrier:{name:'多重バリア',rarity:3,kind:'戦闘',desc:'【バリア10】獲得を3回行う。'}
+};
+const SHOP={potion:30,poisonPotion:40,simpleBarrier:40,panacea:60,present:50,backpack:100};
+const RARITY_POOLS={1:[],2:[],3:[]}; Object.entries(ITEMS).forEach(([id,it])=>RARITY_POOLS[it.rarity].push(id));
+const EVENTS=[
+ {id:'runKids',name:'魔物娘の子供たちと草原を走り回った！',desc:'今回の素早さ成長補正+30%。'},
+ {id:'sunbathe',name:'特訓を一休みして日向ぼっこした……。',desc:'全成長補正-10%。大きさ+3。'},
+ {id:'travelerSkill',name:'旅人と仲良くなってスキルを教えてもらった！',desc:'スキルを追加で1個習得。'},
+ {id:'travelerItem',name:'旅人と仲良くなったことを楽しそうに話している。アイテムも貰ったようだ。',desc:'好色度+3。アイテムを追加で1個入手。'},
+ {id:'hardTrain',name:'とにかく頑張って特訓に励んだ！',desc:'今回の獲得経験値+50%。'}
+];
+function initialState(){return {version:1,level:1,exp:0,gold:0,rankCap:5,stats:{hp:40,atk:7,mag:7,spd:4,bond:0},trainingStats:{size:3,predation:2,intellect:2,lust:2},skills:['tackle','jiggly','slimeDraw'],skillCap:4,skillFailCount:0,inventory:{},trainingItemReady:true,nextTraining:{expBonus:0},training:null,devMode:true,lastResult:null};}
+let state=load(); let selectedPolicy='relaxed'; let timerHandle=null;
+function load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return initialState();return Object.assign(initialState(),JSON.parse(raw));}catch(e){return initialState()}}
+function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state))}
+function expNeed(lv){return 10+lv*2}
+function hasSkill(id){return state.skills.includes(id)}
+function passiveValue(key){let v=0;state.skills.forEach(id=>{const t=SKILLS[id]?.training;if(t&&t[key])v+=t[key]});return v}
+function displayNum(n){return floorDisplay(n).toLocaleString('ja-JP')}
+function showScreen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.screen===id));render()}
+function render(){
+  document.getElementById('goldHeader').textContent=displayNum(state.gold)+'G';
+  document.getElementById('heroLevel').textContent='Lv.'+state.level;
+  const cap=state.level>=state.rankCap; const need=expNeed(state.level); const pct=cap?100:Math.min(100,state.exp/need*100);
+  document.getElementById('xpFill').style.width=pct+'%';
+  document.getElementById('expText').textContent=cap?`上限到達 / 保留EXP ${displayNum(state.exp)}`:`${displayNum(state.exp)} / ${need}`;
+  document.getElementById('rankNotice').innerHTML=cap?'<div class="notice warn">Lv.5到達！ ランク戦が解放されました。現在のプロトタイプでは戦闘は未実装です。</div>':'';
+  document.getElementById('quickStats').innerHTML=statCards([['HP',state.stats.hp],['攻撃力',state.stats.atk],['魔力',state.stats.mag],['素早さ',state.stats.spd],['絆',state.stats.bond],['金貨',state.gold+'G',true]]);
+  document.getElementById('fullStats').innerHTML=statCards([['HP',state.stats.hp],['攻撃力',state.stats.atk],['魔力',state.stats.mag],['素早さ',state.stats.spd],['絆値',state.stats.bond]]);
+  document.getElementById('trainingStats').innerHTML=statCards([['大きさ',state.trainingStats.size],['捕食性',state.trainingStats.predation],['知性',state.trainingStats.intellect],['好色度',state.trainingStats.lust]]);
+  document.getElementById('skillCapText').textContent=`${state.skills.length} / ${state.skillCap}`;
+  document.getElementById('skillList').innerHTML=state.skills.map(id=>skillHtml(id)).join('')||'<div class="card muted">スキルなし</div>';
+  renderInventory(); renderShop(); renderPolicies(); renderTrainingState();
+  document.getElementById('devMode').checked=!!state.devMode;
+  const battleBtn=document.getElementById('goBattle'); battleBtn.textContent=cap?'ランク戦':'戦闘 🔒'; battleBtn.classList.toggle('warn',cap);
+  document.getElementById('trainingStatusHome').innerHTML=state.training?'<div class="notice">現在、草原で放置育成中です。育成画面で残り時間を確認できます。</div>':'';
+}
+function statCards(data){return data.map(([k,v,raw])=>`<div class="stat"><span>${k}</span><b>${raw?v:displayNum(v)}</b></div>`).join('')}
+function skillHtml(id){const s=SKILLS[id];return `<div class="item"><div class="name">${s.name}<span class="tag">${s.type}</span></div><div class="desc">${s.desc}</div></div>`}
+function renderPolicies(){document.getElementById('policyChoices').innerHTML=Object.entries(POLICIES).map(([id,p])=>`<button class="choice ${selectedPolicy===id?'selected':''}" data-policy="${id}"><strong>${p.name}</strong><small>${p.desc}</small></button>`).join('');document.querySelectorAll('[data-policy]').forEach(b=>b.onclick=()=>{selectedPolicy=b.dataset.policy;renderPolicies()})}
+function renderTrainingState(){const running=!!state.training;document.getElementById('trainingSetup').style.display=running?'none':'block';document.getElementById('trainingRunning').style.display=running?'block':'none';if(running){document.getElementById('runningPolicy').textContent=POLICIES[state.training.policy].name;updateTimer();startTimerLoop()}else{stopTimerLoop()}}
+function startTimerLoop(){if(timerHandle)return;timerHandle=setInterval(updateTimer,250)}
+function stopTimerLoop(){if(timerHandle){clearInterval(timerHandle);timerHandle=null}}
+function updateTimer(){if(!state.training)return;const remain=Math.max(0,state.training.endAt-Date.now());const sec=Math.ceil(remain/1000);const m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');document.getElementById('timer').textContent=`${m}:${s}`;if(remain<=0){completeTraining()}}
+function renderInventory(){
+  const entries=Object.entries(state.inventory).filter(([,n])=>n>0).sort((a,b)=>ITEMS[a[0]].rarity-ITEMS[b[0]].rarity||ITEMS[a[0]].name.localeCompare(ITEMS[b[0]].name,'ja'));
+  document.getElementById('trainingItemRight').innerHTML=`<div class="notice ${state.trainingItemReady?'':'warn'}">育成アイテム使用権：<b>${state.trainingItemReady?'使用可能':'使用済み'}</b></div>`;
+  document.getElementById('inventoryList').innerHTML=entries.length?entries.map(([id,n])=>{const it=ITEMS[id];return `<div class="item"><div class="row space"><div class="name">${'⭐'.repeat(it.rarity)} ${it.name}<span class="tag">${it.kind}</span></div><div class="inventory-count">×${n}</div></div><div class="desc">${it.desc}</div></div>`}).join(''):'<div class="card muted">まだアイテムを持っていません。</div>';
+}
+function renderShop(){document.getElementById('shopList').innerHTML=Object.entries(SHOP).map(([id,price])=>{const it=ITEMS[id];return `<div class="item"><div class="row space"><div><div class="name">${it.name}</div><div class="desc">${it.desc}</div></div><button class="btn warn buy" data-buy="${id}">${price}G</button></div></div>`}).join('');document.querySelectorAll('.buy').forEach(b=>b.onclick=()=>buyItem(b.dataset.buy))}
+function addItem(id,count=1){const old=state.inventory[id]||0;const add=Math.min(count,99-old);state.inventory[id]=old+add;return {added:add,lost:count-add}}
+function buyItem(id){const price=SHOP[id];if(state.training){alert('放置育成中はショップを利用できません。');return}if(state.gold<price){alert('金貨が足りません。');return}if((state.inventory[id]||0)>=99){alert('所持上限99個です。');return}state.gold-=price;addItem(id,1);save();render()}
+function openTrainingItems(){if(state.training){alert('放置育成中は育成アイテムを使用できません。');return}const box=document.getElementById('trainingItemChoices');const ids=Object.keys(state.inventory).filter(id=>state.inventory[id]>0&&ITEMS[id].kind==='育成');if(!state.trainingItemReady){box.innerHTML='<div class="notice warn">次の放置育成が終わるまで、育成アイテムは使用できません。</div>'}else if(!ids.length){box.innerHTML='<div class="muted">使用できる育成アイテムを持っていません。</div>'}else{box.innerHTML=ids.map(id=>{const it=ITEMS[id];return `<div class="item"><div class="row space"><div><div class="name">${it.name} ×${state.inventory[id]}</div><div class="desc">${it.desc}</div></div><button class="btn use-training-item" data-id="${id}">使う</button></div></div>`}).join('');box.querySelectorAll('.use-training-item').forEach(b=>b.onclick=()=>useTrainingItem(b.dataset.id))}document.getElementById('trainingItemModal').classList.add('show')}
+function useTrainingItem(id){if(!state.trainingItemReady||!state.inventory[id]||ITEMS[id].kind!=='育成')return;ITEMS[id].use?.(state);state.inventory[id]--;state.trainingItemReady=false;save();document.getElementById('trainingItemModal').classList.remove('show');render();alert(`${ITEMS[id].name}を使用しました。`)}
+function startTraining(){if(state.training)return;const duration=state.devMode?30*1000:30*60*1000;state.training={policy:selectedPolicy,startAt:Date.now(),endAt:Date.now()+duration,duration};save();render();showScreen('training')}
+function cheer(){if(!state.training)return;state.training.endAt-=3000;save();updateTimer()}
+function rollRarity(){const r=Math.random()*100;return r<70?1:r<95?2:3}
+function rollItem(){return pick(RARITY_POOLS[rollRarity()])}
+function learnRandomGrassSkill(source,result){const candidates=GRASS_SKILLS.filter(id=>!state.skills.includes(id));if(!candidates.length){result.push(`${source}：新しく覚えられる草原スキルがありませんでした。`);return null}const id=pick(candidates);state.skills.push(id);result.push(`${source}：💡「${SKILLS[id].name}」を習得！`);return id}
+function completeTraining(){if(!state.training)return;stopTimerLoop();const t=state.training;state.training=null;const policy=POLICIES[t.policy];const result=[];
+  // 1) Event roll first
+  const event=Math.random()<0.30?pick(EVENTS):null;
+  if(event) result.push(`<span class="big-event">🌟 イベント発生</span><br>${event.name}<br><span class="good">${event.desc}</span>`); else result.push('イベントは発生しませんでした。');
+  // 2) calculate session modifiers
+  let expPct=0,goldPct=0,itemChance=70;let growth={hp:policy.growth.hp,atk:policy.growth.atk,mag:policy.growth.mag,spd:20+policy.growth.spd};
+  expPct+=passiveValue('exp');goldPct+=passiveValue('gold');itemChance+=passiveValue('itemChance');
+  if(hasSkill('walkLover')){expPct+=15;growth.spd+=10}
+  expPct+=state.nextTraining.expBonus||0;
+  if(event?.id==='runKids')growth.spd+=30;
+  if(event?.id==='sunbathe'){growth.hp-=10;growth.atk-=10;growth.mag-=10;growth.spd-=10}
+  if(event?.id==='hardTrain')expPct+=50;
+  // growth-stat corrections (snapshot before this training's direct changes)
+  growth.hp+=Math.floor(state.trainingStats.size/10)*5;
+  growth.atk+=Math.floor(state.trainingStats.predation/10)*5;
+  growth.mag+=Math.floor(state.trainingStats.intellect/10)*5;
+  // 3) EXP & Gold
+  let gainedExp=state.level>=state.rankCap?0:round2(40*(1+expPct/100));
+  let gainedGold=Math.floor(25*(1+goldPct/100));
+  state.exp=round2(state.exp+gainedExp);state.gold+=gainedGold;
+  result.push(`EXP <b>+${displayNum(gainedExp)}</b> / 金貨 <b class="gold">+${gainedGold}G</b>${state.level>=state.rankCap?'（Lv上限のためEXP獲得0）':''}`);
+  state.nextTraining.expBonus=0;
+  // 4) level ups and stat growth
+  let levels=0;const before={...state.stats};
+  while(state.level<state.rankCap && state.exp>=expNeed(state.level)){
+    state.exp=round2(state.exp-expNeed(state.level));state.level++;levels++;
+    state.stats.hp=round2(state.stats.hp+4*(1+(10+growth.hp)/100)); // species 110% = base 100 +10
+    state.stats.atk=round2(state.stats.atk+1*(1+growth.atk/100));
+    state.stats.mag=round2(state.stats.mag+1*(1+growth.mag/100));
+    state.stats.spd=round2(state.stats.spd+0.5*(0.70+growth.spd/100));
+  }
+  if(levels){result.push(`Lv.${state.level-levels} → <b>Lv.${state.level}</b>！<br>HP +${round2(state.stats.hp-before.hp)} / 攻撃 +${round2(state.stats.atk-before.atk)} / 魔力 +${round2(state.stats.mag-before.mag)} / 素早さ +${round2(state.stats.spd-before.spd)}`)}else result.push('レベルアップはありませんでした。');
+  // 5) training stats / bond
+  const changes={bond:3,size:0,predation:0,intellect:0,lust:0};Object.entries(policy.training).forEach(([k,v])=>changes[k]=(changes[k]||0)+v);
+  state.stats.bond=clamp(state.stats.bond+changes.bond,0,100);state.trainingStats.size=clamp(state.trainingStats.size+changes.size,0,100);state.trainingStats.predation=clamp(state.trainingStats.predation+changes.predation,0,100);state.trainingStats.intellect=clamp(state.trainingStats.intellect+changes.intellect,0,100);state.trainingStats.lust=clamp(state.trainingStats.lust+changes.lust,0,100);
+  let changeTxt=[`絆 ${changes.bond>=0?'+':''}${changes.bond}`];['size','predation','intellect','lust'].forEach(k=>{if(changes[k])changeTxt.push(`${{size:'大きさ',predation:'捕食性',intellect:'知性',lust:'好色度'}[k]} +${changes[k]}`)});result.push(`育成変化：${changeTxt.join(' / ')}`);
+  // 6) direct event effects
+  if(event?.id==='sunbathe'){state.trainingStats.size=clamp(state.trainingStats.size+3,0,100);result.push('イベント効果：大きさ +3')}
+  if(event?.id==='travelerItem'){state.trainingStats.lust=clamp(state.trainingStats.lust+3,0,100);result.push('イベント効果：好色度 +3')}
+  // 7) event skill bonus (additional, not pity reset)
+  if(event?.id==='travelerSkill')learnRandomGrassSkill('イベント追加習得',result);
+  // 8) item gain: base 70% modified by passive, plus event guaranteed one
+  if(Math.random()<Math.min(100,itemChance)/100){const id=rollItem(),a=addItem(id,1);result.push(`🎁 ${ITEMS[id].name} を${a.added?'1個入手':'入手したが所持上限で持てなかった'}`)}else result.push('通常アイテム：入手なし');
+  if(event?.id==='travelerItem'){const id=rollItem(),a=addItem(id,1);result.push(`🎁 イベント追加：${ITEMS[id].name} を${a.added?'1個入手':'入手したが所持上限で持てなかった'}`)}
+  // 9) normal skill roll with pity
+  const guaranteed=state.skillFailCount>=4;const success=guaranteed||Math.random()<0.20;
+  if(success){const learned=learnRandomGrassSkill(guaranteed?'5回目保証':'通常スキル抽選',result);if(learned)state.skillFailCount=0}else{state.skillFailCount=Math.min(4,state.skillFailCount+1);result.push(`スキル抽選：習得なし（保証カウント ${state.skillFailCount}/4）`)}
+  // 10) restore training item use right
+  state.trainingItemReady=true;
+  if(state.level>=state.rankCap)result.push('<span class="gold">Lv.5上限に到達。ランク戦が解放されました。</span>');
+  state.lastResult=result;save();render();showResult(result);
+}
+function showResult(lines){document.getElementById('resultContent').innerHTML=lines.map(x=>`<div class="result-step">${x}</div>`).join('');document.getElementById('resultModal').classList.add('show')}
+function checkSkillOverflow(){if(state.skills.length<=state.skillCap)return false;const box=document.getElementById('skillManageList');box.innerHTML=state.skills.map((id,i)=>`<label class="item" style="display:block"><input type="checkbox" class="keep-skill" value="${id}" ${i<state.skillCap?'checked':''}> <b>${SKILLS[id].name}</b><div class="desc">${SKILLS[id].desc}</div></label>`).join('');document.getElementById('skillManageModal').classList.add('show');return true}
+function confirmSkillManage(){const chosen=[...document.querySelectorAll('.keep-skill:checked')].map(x=>x.value);if(chosen.length!==state.skillCap){alert(`残すスキルを${state.skillCap}個選んでください。`);return}state.skills=chosen;save();document.getElementById('skillManageModal').classList.remove('show');render()}
+function openBattle(){const cap=state.level>=state.rankCap;document.getElementById('battleModalText').innerHTML=cap?'Lv.5ランク戦は解放済みです。<br><b>戦闘システムは次段階で実装します。</b>':'Lv.5に到達するとランク戦が解放されます。';document.getElementById('battleModal').classList.add('show')}
+function checkOffline(){if(state.training && Date.now()>=state.training.endAt){completeTraining()}}
+
+// events
+for(const b of document.querySelectorAll('nav button'))b.onclick=()=>showScreen(b.dataset.screen);
+document.getElementById('goTraining').onclick=()=>showScreen('training');document.getElementById('goShop').onclick=()=>showScreen('shop');document.getElementById('goTrainingItem').onclick=openTrainingItems;document.getElementById('goBattle').onclick=openBattle;
+document.getElementById('startTraining').onclick=startTraining;document.getElementById('cheerBtn').onclick=cheer;
+document.getElementById('devMode').onchange=e=>{state.devMode=e.target.checked;save();render()};
+document.getElementById('closeResult').onclick=()=>{document.getElementById('resultModal').classList.remove('show');if(!checkSkillOverflow())showScreen('home')};
+document.getElementById('confirmSkillManage').onclick=()=>{confirmSkillManage();showScreen('home')};
+document.getElementById('closeTrainingItem').onclick=()=>document.getElementById('trainingItemModal').classList.remove('show');document.getElementById('closeBattle').onclick=()=>document.getElementById('battleModal').classList.remove('show');
+document.getElementById('resetSave').onclick=()=>{if(confirm('セーブデータを初期化しますか？')){localStorage.removeItem(SAVE_KEY);state=initialState();save();render();showScreen('home')}};
+window.addEventListener('focus',checkOffline);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkOffline()});
+render();checkOffline();
+})();
+</script>
+</body>
+</html>
